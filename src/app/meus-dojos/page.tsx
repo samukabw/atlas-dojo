@@ -14,7 +14,14 @@ export default async function MeusDojosPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl px-6 py-8">
-      <h1 className="registro-label border-b border-foreground/15 pb-2">Meus dojôs</h1>
+      <div className="flex items-center justify-between border-b border-foreground/15 pb-2">
+        <h1 className="registro-label">Meus dojôs</h1>
+        {ehSensei && (
+          <Link href="/dojos/novo" className="text-sm font-semibold text-primary underline">
+            + Cadastrar dojô
+          </Link>
+        )}
+      </div>
 
       {!ehSensei ? (
         <p className="py-8 text-sm text-muted-foreground">

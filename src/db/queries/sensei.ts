@@ -3,6 +3,30 @@ import { dojoSenseis, dojos, avaliacoes } from "@/db/schema";
 import { and, eq, sql, desc } from "drizzle-orm";
 import { obterOuCriarDojoPorPlace } from "./lugares";
 
+/** Cadastra um dojô novo (fora do Google, place_id nulo) e vincula o sensei. */
+export async function cadastrarDojoNovo(
+  usuarioId: number,
+  p: { nome: string; endereco?: string | null; cidade?: string | null; bairro?: string | null; lat: number; lng: number }
+): Promise<number> {
+  const [d] = await db
+    .insert(dojos)
+    .values({
+      nome: p.nome,
+      endereco: p.endereco ?? null,
+      cidade: p.cidade ?? null,
+      bairro: p.bairro ?? null,
+      latitude: String(p.lat),
+      longitude: String(p.lng),
+      placeId: null,
+    })
+    .returning({ id: dojos.id });
+  await db
+    .insert(dojoSenseis)
+    .values({ usuarioId, dojoId: d.id })
+    .onConflictDoNothing({ target: [dojoSenseis.dojoId, dojoSenseis.usuarioId] });
+  return d.id;
+}
+
 /** O usuário já é responsável por este lugar do Google? */
 export async function ehResponsavelPorPlace(usuarioId: number, placeId: string): Promise<boolean> {
   const [row] = await db

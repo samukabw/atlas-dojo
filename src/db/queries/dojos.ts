@@ -1,7 +1,45 @@
 import { db } from "@/db";
 import { dojos, avaliacoes, contatos } from "@/db/schema";
-import { and, or, ilike, eq, sql, asc, desc } from "drizzle-orm";
+import { and, or, ilike, eq, sql, asc, desc, isNull } from "drizzle-orm";
 import { haversineSqlKm } from "@/lib/distancia";
+
+export type DojoManual = {
+  dojoId: number;
+  nome: string;
+  endereco: string | null;
+  latitude: number;
+  longitude: number;
+  notaMedia: number;
+  totalAvaliacoes: number;
+  distanciaKm: number;
+};
+
+/** Dojôs cadastrados manualmente (place_id nulo) mais próximos de um ponto. */
+export async function listarDojosManuaisProximos(
+  lat: number,
+  lng: number,
+  raioKm = 30
+): Promise<DojoManual[]> {
+  const dist = haversineSqlKm(dojos.latitude, dojos.longitude, lat, lng);
+  const rows = await db
+    .select({
+      dojoId: dojos.id,
+      nome: dojos.nome,
+      endereco: dojos.endereco,
+      latitude: sql<number>`${dojos.latitude}::double precision`,
+      longitude: sql<number>`${dojos.longitude}::double precision`,
+      notaMedia: sql<number>`coalesce(avg(${avaliacoes.nota}), 0)::double precision`,
+      totalAvaliacoes: sql<number>`count(${avaliacoes.id})::int`,
+      distanciaKm: dist,
+    })
+    .from(dojos)
+    .leftJoin(avaliacoes, eq(avaliacoes.dojoId, dojos.id))
+    .where(isNull(dojos.placeId))
+    .groupBy(dojos.id)
+    .orderBy(asc(dist))
+    .limit(60);
+  return (rows as DojoManual[]).filter((r) => r.distanciaKm <= raioKm);
+}
 
 export type DojoResumo = {
   id: number; nome: string; cidade: string | null; bairro: string | null;
@@ -58,6 +96,7 @@ export type DojoDetalhe = {
   id: number; nome: string; descricao: string | null;
   cep: string | null; cidade: string | null; bairro: string | null;
   rua: string | null; numero: string | null;
+  endereco: string | null;
   latitude: number; longitude: number;
   notaMedia: number; totalAvaliacoes: number;
   contatos: { telefone: string | null; email: string | null }[];
@@ -83,6 +122,7 @@ export async function obterDojo(id: number): Promise<DojoDetalhe | null> {
   return {
     id: d.id, nome: d.nome, descricao: d.descricao,
     cep: d.cep, cidade: d.cidade, bairro: d.bairro, rua: d.rua, numero: d.numero,
+    endereco: d.endereco,
     latitude: Number(d.latitude), longitude: Number(d.longitude),
     notaMedia: agg?.notaMedia ?? 0, totalAvaliacoes: agg?.totalAvaliacoes ?? 0,
     contatos: cts,

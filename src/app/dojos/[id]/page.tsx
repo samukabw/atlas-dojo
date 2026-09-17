@@ -27,7 +27,14 @@ export default async function DojoPage({ params }: { params: Promise<{ id: strin
       <header>
         <h1 className="text-3xl font-bold">{dojo.nome}</h1>
         <p className="text-muted-foreground">
-          {dojo.rua}{dojo.numero ? `, ${dojo.numero}` : ""} - {dojo.bairro}, {dojo.cidade}
+          {dojo.endereco ??
+            [
+              dojo.rua ? `${dojo.rua}${dojo.numero ? `, ${dojo.numero}` : ""}` : null,
+              dojo.bairro,
+              dojo.cidade,
+            ]
+              .filter(Boolean)
+              .join(", ")}
         </p>
         <p aria-label="nota média">
           ⭐ {dojo.notaMedia.toFixed(1)} ({dojo.totalAvaliacoes} avaliações)
