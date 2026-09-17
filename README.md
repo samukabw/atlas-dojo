@@ -45,10 +45,12 @@ O produto atende dois públicos: **praticantes** (descobrem, comparam e avaliam)
 - 🗺️ **Mapa interativo** com dojôs reais do Google Places.
 - 📍 **"Perto de mim"** - descoberta por geolocalização (com permissão do navegador).
 - 🔎 **Busca por texto** - cidade, bairro ou modalidade (ex.: _"dojôs em Olinda"_, _"jiu-jitsu"_).
-- 🏯 **Detalhe do dojô** - endereço, nota do Google e nota da comunidade.
+- 🏯 **Detalhe do dojô** - fotos, horários, telefone/site, endereço, nota do Google e da comunidade, botão "Como chegar" e compartilhar.
 - ⭐ **Avaliações da comunidade** - nota (1-5) + comentário, **uma por usuário por lugar**, editável.
 - ✏️ **Editar / excluir** a própria avaliação (somente o dono).
 - 📊 **Nota média** da comunidade calculada por lugar.
+- 💗 **Favoritos** - salvar dojôs e ver a lista em "Meus favoritos".
+- 🥷 **Lado do sensei** - reivindicar um dojô do mapa ou **cadastrar um dojô novo** (praia, praça, quintal, espaço compartilhado) marcando o ponto no mapa; ver os seus em "Meus dojôs".
 
 ---
 
@@ -85,6 +87,7 @@ Definido em [`src/db/schema.ts`](src/db/schema.ts) e versionado com migrações 
 | **`avaliacao`** | `nota` (1-5), `descricao`, FKs para `user` e `dojo`, **UNIQUE(usuario_id, dojo_id)** - 1 avaliação por usuário/lugar |
 | **`contato`** | `telefone`, `email`, FK para `dojo` |
 | **`favorito`** | FKs para `user` e `dojo`, **UNIQUE(usuario_id, dojo_id)** - dojôs favoritados |
+| **`dojo_sensei`** | FKs para `dojo` e `user`, **UNIQUE(dojo_id, usuario_id)** - vínculo N:N sensei ↔ dojô |
 
 > Detalhes completos em [`docs/schema.md`](docs/schema.md) e requisitos em [`docs/requisitos.md`](docs/requisitos.md).
 
@@ -99,18 +102,19 @@ dojo_atlas/
 ├─ src/
 │  ├─ app/                           # rotas (App Router) por domínio
 │  │  ├─ (auth)/login, (auth)/registro
-│  │  ├─ mapa/                       # mapa (Google Places) - página + client
-│  │  ├─ dojos/place/[placeId]/      # detalhe do lugar + avaliações
+│  │  ├─ mapa/                       # mapa (Google Places + dojôs manuais)
+│  │  ├─ dojos/place/[placeId]/      # detalhe de um lugar do Google + avaliações
+│  │  ├─ dojos/[id]/                 # detalhe de um dojô do banco (manual)
+│  │  ├─ dojos/novo/                 # sensei cadastra um dojô novo
 │  │  ├─ favoritos/                  # "Meus favoritos"
-│  │  └─ api/{dojos,avaliacoes,favoritos,auth}   # route handlers
+│  │  ├─ meus-dojos/                 # dojôs pelos quais o sensei é responsável
+│  │  └─ api/{dojos,dojos/manuais,avaliacoes,favoritos,sensei,auth}
 │  ├─ components/                    # UI (client), agrupada por feature
 │  │  ├─ ui/                         # primitivos shadcn/ui
 │  │  ├─ layout/                     # marca (kamon) + logout
-│  │  └─ dojo/                       # selo de nota + botão favoritar
+│  │  └─ dojo/                       # selo de nota, favoritar, reivindicar
 │  ├─ features/                      # lógica de negócio (server actions)
-│  │  ├─ auth/       (actions.ts + index.ts)
-│  │  ├─ avaliacoes/ (actions.ts + index.ts)
-│  │  └─ favoritos/  (actions.ts + index.ts)
+│  │  ├─ auth/ · avaliacoes/ · favoritos/ · sensei/   (actions.ts + index.ts)
 │  ├─ db/                            # Drizzle: schema.ts, index.ts, queries/
 │  └─ lib/                           # auth.ts, validators.ts, distancia.ts, utils.ts
 ├─ drizzle/                          # migrações geradas
@@ -217,13 +221,14 @@ npm test
 
 ## Roadmap
 
-Funcionalidades previstas no projeto e ainda não implementadas nesta fase:
+Funcionalidades previstas e ainda não implementadas nesta fase:
 
-- ⭐ Favoritar dojôs
 - 💬 Respostas do sensei às avaliações
-- 🧑‍🏫 Painel do sensei (gerenciar informações e solicitar vínculo com dojôs)
+- 🛠️ Sensei editar informações do dojô (horários, contatos, descrição, fotos)
+- 🛡️ Painel de admin para moderar reivindicações de dojô
+- 🔎 Filtros por modalidade e distância
 - 👤 Edição de perfil e recuperação de senha
-- 🧭 Traçar rota até o dojô
+- 📱 PWA (instalável no celular) e deploy
 - ✅ Testes end-to-end (Playwright)
 
 ---

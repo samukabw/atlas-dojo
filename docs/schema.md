@@ -72,6 +72,18 @@ Dojôs marcados como favoritos por um usuário.
 
 > **Restrição:** `UNIQUE(usuario_id, dojo_id)` - um dojô não se repete na lista de favoritos do usuário.
 
+### `dojo_sensei`
+Vínculo de responsabilidade entre um sensei e um dojô (aprovação automática por ora).
+
+| Campo | Tipo | Observação |
+|-------|------|------------|
+| dojo_sensei_id | bigserial | PK |
+| dojo_id | bigint | FK -> dojo (ON DELETE CASCADE) |
+| usuario_id | bigint | FK -> user (ON DELETE CASCADE) |
+| criado_em | timestamptz | default `now()` |
+
+> **Restrição:** `UNIQUE(dojo_id, usuario_id)` - relação N:N; um dojô pode ter vários responsáveis e um sensei vários dojôs.
+
 ## Relacionamentos principais
 
 - **user → avaliacao** (`escreve`): um usuário escreve várias avaliações. (1:N)
@@ -79,6 +91,7 @@ Dojôs marcados como favoritos por um usuário.
 - **user ↔ dojo** via `avaliacao`: relação N:N restringida a **um par único** por `UNIQUE(usuario_id, dojo_id)`.
 - **user ↔ dojo** via `favorito`: relação N:N - um usuário favorita vários dojôs e um dojô é favoritado por vários usuários (`favorita`).
 - **dojo → contato** (`tem`): um dojô possui vários contatos. (1:N)
+- **user ↔ dojo** via `dojo_sensei`: relação N:N - um sensei é responsável por vários dojôs e um dojô pode ter vários senseis (`gerencia`).
 - **dojo.place_id → Google Places** (`liga`): vínculo externo que conecta o registro local ao lugar real descoberto no mapa.
 
 ## Observações de modelagem
@@ -88,4 +101,5 @@ Dojôs marcados como favoritos por um usuário.
 - **Segurança (RNF02):** senhas são armazenadas apenas como hash bcrypt; a autorização é validada no servidor (server actions e route handlers).
 - **Integridade das avaliações (RNF10):** garantida por `UNIQUE(usuario_id, dojo_id)`.
 - **Precisão geográfica (RNF11):** `latitude`/`longitude` são `numeric` e obrigatórias.
-- **Previsto no DER, ainda não implementado:** a tabela `resposta` (sensei responde avaliação) e o vínculo formal **sensei ↔ dojô** - itens do roadmap.
+- **Vínculo sensei ↔ dojô:** implementado via `dojo_sensei`. O sensei reivindica um dojô do mapa (Google Places) ou cadastra um dojô novo (place_id nulo), e o vínculo é criado automaticamente.
+- **Previsto no DER, ainda não implementado:** a tabela `resposta` (sensei responde avaliação) - item do roadmap.
