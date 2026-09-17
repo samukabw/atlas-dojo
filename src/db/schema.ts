@@ -100,6 +100,21 @@ export const dojoSenseis = pgTable(
   })
 );
 
+export const respostas = pgTable("resposta", {
+  id: bigserial("resposta_id", { mode: "number" }).primaryKey(),
+  avaliacaoId: bigint("avaliacao_id", { mode: "number" })
+    .notNull()
+    .references(() => avaliacoes.id, { onDelete: "cascade" })
+    .unique(),
+  usuarioId: bigint("usuario_id", { mode: "number" })
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  texto: text("texto").notNull(),
+  criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+  atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type Contato = typeof contatos.$inferSelect;
 export type Favorito = typeof favoritos.$inferSelect;
 export type DojoSensei = typeof dojoSenseis.$inferSelect;
+export type Resposta = typeof respostas.$inferSelect;

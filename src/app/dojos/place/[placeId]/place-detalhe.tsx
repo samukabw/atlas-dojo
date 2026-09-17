@@ -7,7 +7,7 @@ import { salvarAvaliacaoPlaceAction, excluirAvaliacaoAction } from "@/features/a
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { SeloNota, BotaoFavorito, BotaoReivindicar } from "@/components/dojo";
+import { SeloNota, BotaoFavorito, BotaoReivindicar, RespostaSensei } from "@/components/dojo";
 import { toast } from "sonner";
 
 type Info = {
@@ -29,9 +29,17 @@ type Item = {
   descricao: string | null;
   usuarioId: number;
   autorNome: string;
+  respostaTexto: string | null;
+  respostaAutor: string | null;
 };
 
-type Reviews = { media: number; total: number; itens: Item[]; usuarioId: number | null };
+type Reviews = {
+  media: number;
+  total: number;
+  itens: Item[];
+  usuarioId: number | null;
+  podeResponder: boolean;
+};
 
 function NotaBadge({ nota }: { nota: number }) {
   return (
@@ -348,6 +356,13 @@ function Detalhe({ placeId }: { placeId: string }) {
                     Excluir minha avaliação
                   </button>
                 )}
+                <RespostaSensei
+                  avaliacaoId={a.id}
+                  respostaTexto={a.respostaTexto}
+                  respostaAutor={a.respostaAutor}
+                  podeResponder={reviews?.podeResponder ?? false}
+                  onChanged={carregarReviews}
+                />
               </div>
             </article>
           ))}

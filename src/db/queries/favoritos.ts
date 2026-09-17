@@ -34,6 +34,29 @@ export async function desfavoritarPorPlace(usuarioId: number, placeId: string): 
     .where(and(eq(favoritos.usuarioId, usuarioId), eq(favoritos.dojoId, d.id)));
 }
 
+/* --- Versões por dojoId (dojôs manuais, sem place_id) --- */
+
+export async function ehFavoritoPorDojo(usuarioId: number, dojoId: number): Promise<boolean> {
+  const [row] = await db
+    .select({ id: favoritos.id })
+    .from(favoritos)
+    .where(and(eq(favoritos.usuarioId, usuarioId), eq(favoritos.dojoId, dojoId)));
+  return Boolean(row);
+}
+
+export async function favoritarPorDojo(usuarioId: number, dojoId: number): Promise<void> {
+  await db
+    .insert(favoritos)
+    .values({ usuarioId, dojoId })
+    .onConflictDoNothing({ target: [favoritos.usuarioId, favoritos.dojoId] });
+}
+
+export async function desfavoritarPorDojo(usuarioId: number, dojoId: number): Promise<void> {
+  await db
+    .delete(favoritos)
+    .where(and(eq(favoritos.usuarioId, usuarioId), eq(favoritos.dojoId, dojoId)));
+}
+
 export type FavoritoResumo = {
   placeId: string | null;
   dojoId: number;

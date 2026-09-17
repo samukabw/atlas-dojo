@@ -37,6 +37,15 @@ export async function ehResponsavelPorPlace(usuarioId: number, placeId: string):
   return Boolean(row);
 }
 
+/** O usuário é responsável (sensei vinculado) por este dojô? */
+export async function ehResponsavelPorDojo(usuarioId: number, dojoId: number): Promise<boolean> {
+  const [row] = await db
+    .select({ id: dojoSenseis.id })
+    .from(dojoSenseis)
+    .where(and(eq(dojoSenseis.usuarioId, usuarioId), eq(dojoSenseis.dojoId, dojoId)));
+  return Boolean(row);
+}
+
 /** Vincula o sensei a um lugar do Google (cria/acha o dojô pelo place_id). */
 export async function vincularPorPlace(
   usuarioId: number,

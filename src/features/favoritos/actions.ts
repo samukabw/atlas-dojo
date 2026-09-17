@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
-import { favoritarPorPlace, desfavoritarPorPlace } from "@/db/queries/favoritos";
+import {
+  favoritarPorPlace,
+  desfavoritarPorPlace,
+  favoritarPorDojo,
+  desfavoritarPorDojo,
+} from "@/db/queries/favoritos";
 
 /**
  * Alterna o favorito de um lugar do Google. `favoritar=1` adiciona (e cria o dojô
@@ -33,6 +38,26 @@ export async function alternarFavoritoAction(
     await desfavoritarPorPlace(usuarioId, placeId);
   }
 
+  revalidatePath("/favoritos");
+  return { ok: true, favorito: favoritar };
+}
+
+/** Alterna o favorito de um dojô do banco (manual), identificado por dojoId. */
+export async function alternarFavoritoDojoAction(
+  formData: FormData
+): Promise<{ ok: boolean; favorito?: boolean; erro?: string }> {
+  const session = await auth();
+  const usuarioId = (session?.user as { id?: number } | undefined)?.id;
+  if (!usuarioId) return { ok: false, erro: "Faça login para favoritar" };
+
+  const dojoId = Number(formData.get("dojoId"));
+  if (!Number.isFinite(dojoId)) return { ok: false, erro: "Dojô inválido" };
+
+  const favoritar = String(formData.get("favoritar") ?? "") === "1";
+  if (favoritar) await favoritarPorDojo(usuarioId, dojoId);
+  else await desfavoritarPorDojo(usuarioId, dojoId);
+
+  revalidatePath(`/dojos/${dojoId}`);
   revalidatePath("/favoritos");
   return { ok: true, favorito: favoritar };
 }

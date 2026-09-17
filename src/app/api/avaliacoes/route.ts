@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listarAvaliacoes } from "@/db/queries/avaliacoes";
 import { obterDojoIdPorPlace } from "@/db/queries/lugares";
+import { ehResponsavelPorDojo } from "@/db/queries/sensei";
 import { auth } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -13,15 +14,19 @@ export async function GET(req: NextRequest) {
   }
 
   const session = await auth();
-  const usuarioId = (session?.user as { id?: number } | undefined)?.id ?? null;
+  const u = session?.user as { id?: number; perfil?: string } | undefined;
+  const usuarioId = u?.id ?? null;
+  const sensei = u?.perfil === "sensei" || u?.perfil === "admin";
 
   const dojoId = await obterDojoIdPorPlace(placeId);
   if (!dojoId) {
-    return NextResponse.json({ media: 0, total: 0, itens: [], usuarioId });
+    return NextResponse.json({ media: 0, total: 0, itens: [], usuarioId, podeResponder: false });
   }
 
   const itens = await listarAvaliacoes(dojoId);
   const total = itens.length;
   const media = total ? itens.reduce((s, a) => s + a.nota, 0) / total : 0;
-  return NextResponse.json({ media, total, itens, usuarioId });
+  const podeResponder = Boolean(usuarioId && sensei) && (await ehResponsavelPorDojo(usuarioId!, dojoId));
+
+  return NextResponse.json({ media, total, itens, usuarioId, podeResponder });
 }

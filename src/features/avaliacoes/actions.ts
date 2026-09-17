@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { avaliacaoSchema } from "@/lib/validators";
 import { criarOuAtualizarAvaliacao, excluirAvaliacao } from "@/db/queries/avaliacoes";
 import { obterOuCriarDojoPorPlace } from "@/db/queries/lugares";
+import { responderAvaliacao, excluirResposta } from "@/db/queries/respostas";
 
 export async function salvarAvaliacaoAction(
   formData: FormData
@@ -55,6 +56,34 @@ export async function salvarAvaliacaoPlaceAction(
   const res = await criarOuAtualizarAvaliacao(usuarioId, { dojoId, nota, descricao });
   if (res.ok) revalidatePath(`/dojos/place/${placeId}`);
   return res;
+}
+
+/** Sensei responde (ou edita a resposta de) uma avaliação de um dojô seu. */
+export async function responderAvaliacaoAction(
+  formData: FormData
+): Promise<{ ok: boolean; erro?: string }> {
+  const session = await auth();
+  const usuarioId = (session?.user as { id?: number } | undefined)?.id;
+  if (!usuarioId) return { ok: false, erro: "Faça login" };
+
+  const avaliacaoId = Number(formData.get("avaliacaoId"));
+  const texto = String(formData.get("texto") ?? "").trim();
+  if (!Number.isFinite(avaliacaoId)) return { ok: false, erro: "Avaliação inválida" };
+  if (texto.length < 1) return { ok: false, erro: "Escreva uma resposta" };
+
+  return responderAvaliacao(usuarioId, avaliacaoId, texto);
+}
+
+/** Sensei remove a própria resposta. */
+export async function excluirRespostaAction(
+  formData: FormData
+): Promise<{ ok: boolean; erro?: string }> {
+  const session = await auth();
+  const usuarioId = (session?.user as { id?: number } | undefined)?.id;
+  if (!usuarioId) return { ok: false, erro: "Faça login" };
+  const avaliacaoId = Number(formData.get("avaliacaoId"));
+  if (!Number.isFinite(avaliacaoId)) return { ok: false, erro: "Avaliação inválida" };
+  return excluirResposta(usuarioId, avaliacaoId);
 }
 
 export async function excluirAvaliacaoAction(

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { alternarFavoritoAction } from "@/features/favoritos";
+import { alternarFavoritoAction, alternarFavoritoDojoAction } from "@/features/favoritos";
 import { toast } from "sonner";
 
-function CoracaoIcon({ preenchido }: { preenchido: boolean }) {
+export function CoracaoIcon({ preenchido }: { preenchido: boolean }) {
   return (
     <svg
       width="16"
@@ -71,6 +71,46 @@ export function BotaoFavorito({
       if (endereco) fd.set("endereco", endereco);
     }
     const res = await alternarFavoritoAction(fd);
+    setCarregando(false);
+    if (res.ok) {
+      setFavorito(res.favorito ?? novo);
+      toast.success(novo ? "Adicionado aos favoritos" : "Removido dos favoritos");
+    } else {
+      toast.error(res.erro ?? "Erro ao favoritar");
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={alternar}
+      disabled={carregando}
+      aria-pressed={favorito}
+      aria-label={favorito ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+      className={`inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60 ${
+        favorito
+          ? "border-primary/30 bg-accent text-primary"
+          : "border-foreground/15 text-foreground hover:bg-muted"
+      }`}
+    >
+      <CoracaoIcon preenchido={favorito} />
+      {favorito ? "Favoritado" : "Favoritar"}
+    </button>
+  );
+}
+
+/** Favoritar um dojô do banco (manual), com estado inicial vindo do servidor. */
+export function BotaoFavoritoDojo({ dojoId, inicial }: { dojoId: number; inicial: boolean }) {
+  const [favorito, setFavorito] = useState(inicial);
+  const [carregando, setCarregando] = useState(false);
+
+  async function alternar() {
+    setCarregando(true);
+    const novo = !favorito;
+    const fd = new FormData();
+    fd.set("dojoId", String(dojoId));
+    fd.set("favoritar", novo ? "1" : "0");
+    const res = await alternarFavoritoDojoAction(fd);
     setCarregando(false);
     if (res.ok) {
       setFavorito(res.favorito ?? novo);
