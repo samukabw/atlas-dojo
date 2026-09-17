@@ -20,7 +20,7 @@ Requisitos extraídos do documento do projeto. As colunas de papel indicam quem 
 | RF10 | Avaliar um dojô atribuindo nota e comentário. | ✓ | ✓ | ✓ | ✅ |
 | RF11 | Editar ou remover a própria avaliação. | ✓ | ✓ | ✓ | ✅ |
 | RF12 | Exibir todas as avaliações e a nota média de cada dojô. | ✓ | ✓ | ✓ | ✅ |
-| RF13 | Sensei responder avaliações dos dojôs aos quais está vinculado. | - | ✓ | ✓ | ⬜ |
+| RF13 | Sensei responder avaliações dos dojôs aos quais está vinculado. | - | ✓ | ✓ | ✅ (sensei responsável responde/edita; 1 resposta por avaliação) |
 | RF14 | Sensei atualizar horários, contatos, descrição e fotos dos seus dojôs. | - | ✓ | ✓ | 🟡 (sensei já reivindica/cadastra dojô; editar informações ainda pendente) |
 | RF15 | Sensei solicitar associação (vínculo) a um ou mais dojôs. | - | ✓ | ✓ | ✅ (reivindicar dojô do mapa ou cadastrar dojô novo; vínculo automático) |
 | RF16 | Abrir uma rota para o dojô em um serviço de mapas. | ✓ | ✓ | ✓ | ✅ (botão "Como chegar") |
@@ -49,4 +49,4 @@ Requisitos extraídos do documento do projeto. As colunas de papel indicam quem 
 - A **integridade das avaliações (RNF10)** é garantida no banco pela restrição `UNIQUE(usuario_id, dojo_id)` da tabela `avaliacao`.
 - A **descoberta de dojôs (RF04-RF06)** usa a **Google Places API**; as avaliações e favoritos da comunidade (RF09-RF12) são gravados no banco próprio, ligados ao `place_id` do lugar.
 - **Lado do sensei (RF15):** o sensei reivindica um dojô do mapa ou **cadastra um dojô novo** (fora do Google - praia, praça, quintal, espaço compartilhado), com vínculo `dojo_sensei` (N:N) e aprovação automática. Dojôs manuais aparecem no mapa e têm página de detalhe própria.
-- Itens do **roadmap**: RF03 (perfil), RF07 (filtros por modalidade/distância), RF13 (sensei responder avaliações), RF14 (editar informações do dojô), recuperação de senha (parte do RF02) e painel de admin para moderar reivindicações.
+- Itens do **roadmap**: RF03 (perfil), RF07 (filtros por modalidade/distância), RF14 (editar informações do dojô), recuperação de senha (parte do RF02) e painel de admin para moderar reivindicações.

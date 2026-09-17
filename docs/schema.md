@@ -84,6 +84,20 @@ Vínculo de responsabilidade entre um sensei e um dojô (aprovação automática
 
 > **Restrição:** `UNIQUE(dojo_id, usuario_id)` - relação N:N; um dojô pode ter vários responsáveis e um sensei vários dojôs.
 
+### `resposta`
+Resposta do sensei responsável a uma avaliação.
+
+| Campo | Tipo | Observação |
+|-------|------|------------|
+| resposta_id | bigserial | PK |
+| avaliacao_id | bigint | FK -> avaliacao (ON DELETE CASCADE), UK (única) |
+| usuario_id | bigint | FK -> user (sensei que respondeu) |
+| texto | text | |
+| criado_em | timestamptz | default `now()` |
+| atualizado_em | timestamptz | default `now()` |
+
+> **Restrição:** `UNIQUE(avaliacao_id)` - uma resposta por avaliação.
+
 ## Relacionamentos principais
 
 - **user → avaliacao** (`escreve`): um usuário escreve várias avaliações. (1:N)
@@ -92,6 +106,7 @@ Vínculo de responsabilidade entre um sensei e um dojô (aprovação automática
 - **user ↔ dojo** via `favorito`: relação N:N - um usuário favorita vários dojôs e um dojô é favoritado por vários usuários (`favorita`).
 - **dojo → contato** (`tem`): um dojô possui vários contatos. (1:N)
 - **user ↔ dojo** via `dojo_sensei`: relação N:N - um sensei é responsável por vários dojôs e um dojô pode ter vários senseis (`gerencia`).
+- **avaliacao → resposta** (`responde`): uma avaliação pode ter uma resposta do sensei responsável. (1:1)
 - **dojo.place_id → Google Places** (`liga`): vínculo externo que conecta o registro local ao lugar real descoberto no mapa.
 
 ## Observações de modelagem
@@ -102,4 +117,4 @@ Vínculo de responsabilidade entre um sensei e um dojô (aprovação automática
 - **Integridade das avaliações (RNF10):** garantida por `UNIQUE(usuario_id, dojo_id)`.
 - **Precisão geográfica (RNF11):** `latitude`/`longitude` são `numeric` e obrigatórias.
 - **Vínculo sensei ↔ dojô:** implementado via `dojo_sensei`. O sensei reivindica um dojô do mapa (Google Places) ou cadastra um dojô novo (place_id nulo), e o vínculo é criado automaticamente.
-- **Previsto no DER, ainda não implementado:** a tabela `resposta` (sensei responde avaliação) - item do roadmap.
+- **Resposta do sensei:** implementada via `resposta`. Só o sensei responsável pelo dojô da avaliação pode responder (uma resposta por avaliação, editável).

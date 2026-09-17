@@ -50,7 +50,7 @@ O produto atende dois públicos: **praticantes** (descobrem, comparam e avaliam)
 - ✏️ **Editar / excluir** a própria avaliação (somente o dono).
 - 📊 **Nota média** da comunidade calculada por lugar.
 - 💗 **Favoritos** - salvar dojôs e ver a lista em "Meus favoritos".
-- 🥷 **Lado do sensei** - reivindicar um dojô do mapa ou **cadastrar um dojô novo** (praia, praça, quintal, espaço compartilhado) marcando o ponto no mapa; ver os seus em "Meus dojôs".
+- 🥷 **Lado do sensei** - reivindicar um dojô do mapa ou **cadastrar um dojô novo** (praia, praça, quintal, espaço compartilhado) marcando o ponto no mapa; **responder avaliações** dos seus dojôs; ver os seus em "Meus dojôs".
 
 ---
 
@@ -88,6 +88,7 @@ Definido em [`src/db/schema.ts`](src/db/schema.ts) e versionado com migrações 
 | **`contato`** | `telefone`, `email`, FK para `dojo` |
 | **`favorito`** | FKs para `user` e `dojo`, **UNIQUE(usuario_id, dojo_id)** - dojôs favoritados |
 | **`dojo_sensei`** | FKs para `dojo` e `user`, **UNIQUE(dojo_id, usuario_id)** - vínculo N:N sensei ↔ dojô |
+| **`resposta`** | FK única para `avaliacao` + FK para `user` (sensei), `texto` - resposta do sensei à avaliação |
 
 > Detalhes completos em [`docs/schema.md`](docs/schema.md) e requisitos em [`docs/requisitos.md`](docs/requisitos.md).
 
@@ -223,7 +224,6 @@ npm test
 
 Funcionalidades previstas e ainda não implementadas nesta fase:
 
-- 💬 Respostas do sensei às avaliações
 - 🛠️ Sensei editar informações do dojô (horários, contatos, descrição, fotos)
 - 🛡️ Painel de admin para moderar reivindicações de dojô
 - 🔎 Filtros por modalidade e distância
