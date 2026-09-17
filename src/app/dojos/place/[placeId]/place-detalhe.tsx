@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { APIProvider, useMapsLibrary } from "@vis.gl/react-google-maps";
+import { Navigation, Share2, Phone, Globe, Clock } from "lucide-react";
 import { salvarAvaliacaoPlaceAction, excluirAvaliacaoAction } from "@/features/avaliacoes";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +17,10 @@ type Info = {
   lng: number;
   ratingGoogle: number | null;
   totalGoogle: number | null;
+  fotos: string[];
+  horarios: string[] | null;
+  telefone: string | null;
+  site: string | null;
 };
 
 type Item = {
@@ -37,6 +42,9 @@ function NotaBadge({ nota }: { nota: number }) {
   );
 }
 
+const acaoCls =
+  "inline-flex items-center gap-2 rounded-md border border-foreground/15 px-3 py-2 text-sm font-semibold transition-colors hover:bg-muted";
+
 function Detalhe({ placeId }: { placeId: string }) {
   const placesLib = useMapsLibrary("places");
   const [info, setInfo] = useState<Info | null>(null);
@@ -52,9 +60,21 @@ function Detalhe({ placeId }: { placeId: string }) {
       try {
         const place = new placesLib.Place({ id: placeId });
         await place.fetchFields({
-          fields: ["displayName", "formattedAddress", "location", "rating", "userRatingCount"],
+          fields: [
+            "displayName",
+            "formattedAddress",
+            "location",
+            "rating",
+            "userRatingCount",
+            "photos",
+            "regularOpeningHours",
+            "nationalPhoneNumber",
+            "websiteURI",
+          ],
         });
         if (!ativo) return;
+        const fotos =
+          place.photos?.slice(0, 8).map((p) => p.getURI({ maxWidth: 640, maxHeight: 480 })) ?? [];
         setInfo({
           nome: place.displayName ?? "Dojô",
           endereco: place.formattedAddress ?? null,
@@ -62,10 +82,17 @@ function Detalhe({ placeId }: { placeId: string }) {
           lng: place.location?.lng() ?? 0,
           ratingGoogle: place.rating ?? null,
           totalGoogle: place.userRatingCount ?? null,
+          fotos,
+          horarios: place.regularOpeningHours?.weekdayDescriptions ?? null,
+          telefone: place.nationalPhoneNumber ?? null,
+          site: place.websiteURI ?? null,
         });
       } catch {
         if (ativo)
-          setInfo({ nome: "Dojô", endereco: null, lat: 0, lng: 0, ratingGoogle: null, totalGoogle: null });
+          setInfo({
+            nome: "Dojô", endereco: null, lat: 0, lng: 0, ratingGoogle: null,
+            totalGoogle: null, fotos: [], horarios: null, telefone: null, site: null,
+          });
       }
     })();
     return () => {
@@ -125,8 +152,25 @@ function Detalhe({ placeId }: { placeId: string }) {
     }
   }
 
+  async function compartilhar() {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({ title: info?.nome ?? "Dojô", url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copiado!");
+      }
+    } catch {
+      /* usuário cancelou o compartilhamento */
+    }
+  }
+
   const logado = reviews?.usuarioId != null;
   const usuarioId = reviews?.usuarioId ?? null;
+  const comoChegar = info
+    ? `https://www.google.com/maps/dir/?api=1&destination=${info.lat},${info.lng}&destination_place_id=${encodeURIComponent(placeId)}`
+    : "#";
 
   return (
     <main className="mx-auto w-full max-w-2xl px-6 py-8">
@@ -142,18 +186,14 @@ function Detalhe({ placeId }: { placeId: string }) {
 
       {/* Cabeçalho certificado */}
       <section className="mt-4 rounded border border-foreground/15 bg-card p-5 sm:p-6">
-        <p className="tnum registro-label">
-          Registro nº {placeId.slice(0, 12).toUpperCase()}
-        </p>
+        <p className="tnum registro-label">Registro nº {placeId.slice(0, 12).toUpperCase()}</p>
         <div className="mt-3 flex items-start gap-4">
           <SeloNota nota={reviews?.media ?? 0} total={reviews?.total ?? 0} size={82} />
           <div className="min-w-0">
             <h1 className="text-balance text-2xl font-extrabold leading-tight sm:text-3xl">
-              {info?.nome ?? "Carregando…"}
+              {info?.nome ?? "Carregando..."}
             </h1>
-            {info?.endereco && (
-              <p className="mt-1.5 text-sm text-muted-foreground">{info.endereco}</p>
-            )}
+            {info?.endereco && <p className="mt-1.5 text-sm text-muted-foreground">{info.endereco}</p>}
             <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm">
               <span className="tnum">
                 <span className="font-bold">{reviews ? reviews.media.toFixed(1) : "-"}</span>
@@ -167,8 +207,26 @@ function Detalhe({ placeId }: { placeId: string }) {
             </div>
           </div>
         </div>
+
+        {/* Ações */}
         {info && (
-          <div className="mt-4">
+          <div className="mt-4 flex flex-wrap gap-2">
+            <a href={comoChegar} target="_blank" rel="noopener noreferrer" className={acaoCls}>
+              <Navigation size={15} /> Como chegar
+            </a>
+            <button type="button" onClick={compartilhar} className={acaoCls}>
+              <Share2 size={15} /> Compartilhar
+            </button>
+            {info.telefone && (
+              <a href={`tel:${info.telefone.replace(/\s/g, "")}`} className={acaoCls}>
+                <Phone size={15} /> {info.telefone}
+              </a>
+            )}
+            {info.site && (
+              <a href={info.site} target="_blank" rel="noopener noreferrer" className={acaoCls}>
+                <Globe size={15} /> Site
+              </a>
+            )}
             <BotaoFavorito
               placeId={placeId}
               nome={info.nome}
@@ -179,6 +237,40 @@ function Detalhe({ placeId }: { placeId: string }) {
           </div>
         )}
       </section>
+
+      {/* Fotos */}
+      {info && info.fotos.length > 0 && (
+        <section className="mt-6">
+          <div className="-mx-6 flex gap-3 overflow-x-auto px-6 pb-2">
+            {info.fotos.map((src, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={i}
+                src={src}
+                alt={`Foto ${i + 1} de ${info.nome}`}
+                loading="lazy"
+                className="h-40 w-56 shrink-0 rounded border border-foreground/15 object-cover"
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Horários */}
+      {info?.horarios && info.horarios.length > 0 && (
+        <section className="mt-6">
+          <details className="rounded border border-foreground/15 bg-card">
+            <summary className="flex cursor-pointer items-center gap-2 px-4 py-3 font-semibold">
+              <Clock size={16} className="text-primary" /> Horários de funcionamento
+            </summary>
+            <ul className="border-t border-foreground/15 px-4 py-3 text-sm text-muted-foreground">
+              {info.horarios.map((h, i) => (
+                <li key={i} className="py-0.5">{h}</li>
+              ))}
+            </ul>
+          </details>
+        </section>
+      )}
 
       {/* Sua avaliação */}
       <section className="mt-8">
@@ -206,11 +298,11 @@ function Detalhe({ placeId }: { placeId: string }) {
                 id="descricao"
                 value={descricao}
                 onChange={(e) => setDescricao(e.target.value)}
-                placeholder="Como foi treinar aqui? Ambiente, professores, estrutura…"
+                placeholder="Como foi treinar aqui? Ambiente, professores, estrutura..."
               />
             </div>
             <Button type="submit" disabled={enviando || !info}>
-              {enviando ? "Carimbando…" : "Carimbar avaliação"}
+              {enviando ? "Carimbando..." : "Carimbar avaliação"}
             </Button>
           </form>
         ) : (
