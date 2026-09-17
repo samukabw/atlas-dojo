@@ -7,7 +7,7 @@ import { salvarAvaliacaoPlaceAction, excluirAvaliacaoAction } from "@/features/a
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { SeloNota, BotaoFavorito } from "@/components/dojo";
+import { SeloNota, BotaoFavorito, BotaoReivindicar } from "@/components/dojo";
 import { toast } from "sonner";
 
 type Info = {
@@ -228,6 +228,13 @@ function Detalhe({ placeId }: { placeId: string }) {
               </a>
             )}
             <BotaoFavorito
+              placeId={placeId}
+              nome={info.nome}
+              lat={info.lat}
+              lng={info.lng}
+              endereco={info.endereco}
+            />
+            <BotaoReivindicar
               placeId={placeId}
               nome={info.nome}
               lat={info.lat}

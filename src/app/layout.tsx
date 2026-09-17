@@ -25,6 +25,8 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const session = await auth();
+  const perfil = (session?.user as { perfil?: string } | undefined)?.perfil;
+  const ehSensei = perfil === "sensei" || perfil === "admin";
 
   return (
     <html
@@ -39,6 +41,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               <Button variant="ghost" nativeButton={false} render={<Link href="/mapa">Mapa</Link>} />
               {session?.user ? (
                 <>
+                  {ehSensei && (
+                    <Button
+                      variant="ghost"
+                      nativeButton={false}
+                      render={<Link href="/meus-dojos">Meus dojôs</Link>}
+                    />
+                  )}
                   <Button
                     variant="ghost"
                     nativeButton={false}

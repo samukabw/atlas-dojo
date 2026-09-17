@@ -83,5 +83,23 @@ export type Dojo = typeof dojos.$inferSelect;
 export type NewDojo = typeof dojos.$inferInsert;
 export type Avaliacao = typeof avaliacoes.$inferSelect;
 export type NewAvaliacao = typeof avaliacoes.$inferInsert;
+export const dojoSenseis = pgTable(
+  "dojo_sensei",
+  {
+    id: bigserial("dojo_sensei_id", { mode: "number" }).primaryKey(),
+    dojoId: bigint("dojo_id", { mode: "number" })
+      .notNull()
+      .references(() => dojos.id, { onDelete: "cascade" }),
+    usuarioId: bigint("usuario_id", { mode: "number" })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    unicoPorDojoSensei: uniqueIndex("dojo_sensei_unq").on(t.dojoId, t.usuarioId),
+  })
+);
+
 export type Contato = typeof contatos.$inferSelect;
 export type Favorito = typeof favoritos.$inferSelect;
+export type DojoSensei = typeof dojoSenseis.$inferSelect;
