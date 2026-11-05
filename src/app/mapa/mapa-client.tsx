@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SeloNota } from "@/components/dojo";
+import { termosDeBusca, unirPorId } from "@/lib/busca-lugares";
 
 type Lugar = {
   id: string;
@@ -28,7 +29,6 @@ type DojoManual = {
 
 const CENTRO_PADRAO = { lat: -23.5505, lng: -46.6333 };
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID;
-const BUSCA_PADRAO = "academia de artes marciais dojô";
 
 function IconeFechar({ onClick }: { onClick: () => void }) {
   return (
@@ -78,25 +78,33 @@ function MapaInterno() {
       if (!placesLib) return;
       setCarregando(true);
       try {
-        const { places } = await placesLib.Place.searchByText({
-          textQuery: texto.trim() || BUSCA_PADRAO,
-          fields: ["id", "displayName", "location", "formattedAddress", "rating"],
-          locationBias: { center, radius: 15000 },
-          maxResultCount: 20,
-          language: "pt-BR",
-          region: "br",
-        });
-        const mapeados: Lugar[] = (places ?? [])
-          .map((p) => ({
-            id: p.id,
-            nome: p.displayName ?? "Dojô",
-            lat: p.location?.lat() ?? 0,
-            lng: p.location?.lng() ?? 0,
-            endereco: p.formattedAddress ?? null,
-            ratingGoogle: p.rating ?? null,
-          }))
-          .filter((l) => l.lat !== 0 && l.lng !== 0);
-        setLugares(mapeados);
+        const resultados = await Promise.allSettled(
+          termosDeBusca(texto).map((textQuery) =>
+            placesLib.Place.searchByText({
+              textQuery,
+              fields: ["id", "displayName", "location", "formattedAddress", "rating"],
+              locationBias: { center, radius: 15000 },
+              maxResultCount: 20,
+              language: "pt-BR",
+              region: "br",
+            })
+          )
+        );
+        const listas: Lugar[][] = resultados.map((r) =>
+          r.status === "fulfilled"
+            ? (r.value.places ?? [])
+                .map((p) => ({
+                  id: p.id,
+                  nome: p.displayName ?? "Dojô",
+                  lat: p.location?.lat() ?? 0,
+                  lng: p.location?.lng() ?? 0,
+                  endereco: p.formattedAddress ?? null,
+                  ratingGoogle: p.rating ?? null,
+                }))
+                .filter((l) => l.lat !== 0 && l.lng !== 0)
+            : []
+        );
+        setLugares(unirPorId(listas));
       } catch {
         setLugares([]);
       } finally {
