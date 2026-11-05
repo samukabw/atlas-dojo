@@ -24,7 +24,12 @@ export default function LoginPage() {
     });
     setCarregando(false);
     if (res?.error) toast.error("Credenciais inválidas");
-    else { toast.success("Bem-vindo!"); router.push("/mapa"); }
+    else {
+      toast.success("Bem-vindo!");
+      router.push("/mapa");
+      // O layout raiz lê a sessão no servidor e não é refeito numa navegação no cliente.
+      router.refresh();
+    }
   }
 
   return (
