@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { dojos, avaliacoes, contatos } from "@/db/schema";
-import { and, or, ilike, eq, sql, asc, desc, isNull } from "drizzle-orm";
+import { and, or, ilike, eq, sql, asc, desc, isNull, isNotNull } from "drizzle-orm";
 import { haversineSqlKm } from "@/lib/distancia";
 
 export type DojoManual = {
@@ -39,6 +39,42 @@ export async function listarDojosManuaisProximos(
     .orderBy(asc(dist))
     .limit(60);
   return (rows as DojoManual[]).filter((r) => r.distanciaKm <= raioKm);
+}
+
+export type DojoGoogleConhecido = {
+  placeId: string;
+  nome: string;
+  endereco: string | null;
+  latitude: number;
+  longitude: number;
+  distanciaKm: number;
+};
+
+/**
+ * Dojôs do Google (place_id preenchido) que já estão no banco — avaliados,
+ * favoritados ou reivindicados. O mapa mostra estes sempre, porque o Text Search
+ * do Google devolve só os 20 mais relevantes por termo e a ordem varia.
+ */
+export async function listarDojosGoogleProximos(
+  lat: number,
+  lng: number,
+  raioKm = 30
+): Promise<DojoGoogleConhecido[]> {
+  const dist = haversineSqlKm(dojos.latitude, dojos.longitude, lat, lng);
+  const rows = await db
+    .select({
+      placeId: sql<string>`${dojos.placeId}`,
+      nome: dojos.nome,
+      endereco: dojos.endereco,
+      latitude: sql<number>`${dojos.latitude}::double precision`,
+      longitude: sql<number>`${dojos.longitude}::double precision`,
+      distanciaKm: dist,
+    })
+    .from(dojos)
+    .where(and(isNotNull(dojos.placeId), sql`${dist} <= ${raioKm}`))
+    .orderBy(asc(dist))
+    .limit(200);
+  return rows as DojoGoogleConhecido[];
 }
 
 export type DojoResumo = {

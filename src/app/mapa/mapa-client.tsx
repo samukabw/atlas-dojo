@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { APIProvider, Map, AdvancedMarker, useMap, useMapsLibrary } from "@vis.gl/react-google-maps";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
@@ -63,6 +63,8 @@ function MapaInterno() {
   const [selManual, setSelManual] = useState<DojoManual | null>(null);
   const [resumo, setResumo] = useState<{ media: number; total: number } | null>(null);
   const [carregando, setCarregando] = useState(false);
+  // Só a busca mais recente pode atualizar os pins (evita resposta antiga sobrescrever a nova).
+  const ultimaBusca = useRef(0);
 
   const carregarManuais = useCallback(async (center: { lat: number; lng: number }) => {
     try {
@@ -73,23 +75,60 @@ function MapaInterno() {
     }
   }, []);
 
+  const carregarGoogleDoBanco = useCallback(
+    async (center: { lat: number; lng: number }): Promise<Lugar[]> => {
+      try {
+        const r = await fetch(`/api/dojos/google?lat=${center.lat}&lng=${center.lng}`);
+        if (!r.ok) return [];
+        const dados: {
+          placeId: string;
+          nome: string;
+          endereco: string | null;
+          latitude: number;
+          longitude: number;
+        }[] = await r.json();
+        return dados.map((d) => ({
+          id: d.placeId,
+          nome: d.nome,
+          lat: d.latitude,
+          lng: d.longitude,
+          endereco: d.endereco,
+          ratingGoogle: null,
+        }));
+      } catch {
+        return [];
+      }
+    },
+    []
+  );
+
   const buscar = useCallback(
     async (texto: string, center: { lat: number; lng: number }) => {
       if (!placesLib) return;
+      const id = ++ultimaBusca.current;
+      const emBranco = !texto.trim();
       setCarregando(true);
       try {
-        const resultados = await Promise.allSettled(
-          termosDeBusca(texto).map((textQuery) =>
-            placesLib.Place.searchByText({
-              textQuery,
-              fields: ["id", "displayName", "location", "formattedAddress", "rating"],
-              locationBias: { center, radius: 15000 },
-              maxResultCount: 20,
-              language: "pt-BR",
-              region: "br",
-            })
-          )
-        );
+        const [resultados, doBanco] = await Promise.all([
+          Promise.allSettled(
+            termosDeBusca(texto).map((textQuery) =>
+              placesLib.Place.searchByText({
+                textQuery,
+                fields: ["id", "displayName", "location", "formattedAddress", "rating"],
+                locationBias: { center, radius: 15000 },
+                maxResultCount: 20,
+                language: "pt-BR",
+                region: "br",
+              })
+            )
+          ),
+          emBranco ? carregarGoogleDoBanco(center) : Promise.resolve([] as Lugar[]),
+        ]);
+        if (id !== ultimaBusca.current) return;
+        const falhas = resultados.filter((r) => r.status === "rejected");
+        if (falhas.length) {
+          console.warn(`[mapa] ${falhas.length}/${resultados.length} buscas do Places falharam`, falhas);
+        }
         const listas: Lugar[][] = resultados.map((r) =>
           r.status === "fulfilled"
             ? (r.value.places ?? [])
@@ -104,15 +143,18 @@ function MapaInterno() {
                 .filter((l) => l.lat !== 0 && l.lng !== 0)
             : []
         );
-        setLugares(unirPorId(listas));
+        const novos = unirPorId(listas);
+        // Busca em branco: soma ao que já estava no mapa e aos dojôs do banco,
+        // para um pin não sumir só porque o Google mudou a ordem dos 20 resultados.
+        setLugares((anteriores) => (emBranco ? unirPorId([novos, doBanco, anteriores]) : novos));
       } catch {
-        setLugares([]);
+        if (id === ultimaBusca.current && !emBranco) setLugares([]);
       } finally {
-        setCarregando(false);
+        if (id === ultimaBusca.current) setCarregando(false);
       }
       carregarManuais(center);
     },
-    [placesLib, carregarManuais]
+    [placesLib, carregarManuais, carregarGoogleDoBanco]
   );
 
   useEffect(() => {
